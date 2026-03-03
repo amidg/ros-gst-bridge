@@ -218,7 +218,7 @@ datachannel_handler_string_topic::on_open_cb(GstWebRTCDataChannel * channel)
     get_base_node_if(base_)->parameters,
     get_base_node_if(base_)->topics,
     "~/"+get_base_name(base_)+"/"+get_label(channel)+"_rx",
-    rclcpp::SensorDataQoS()  // best_effort + volatile
+    rclcpp::QoS(1).best_effort().durability_volatile()  // best_effort, volatile, keep_last=1
   );
 
 }

@@ -35,7 +35,7 @@ void clock_observer::initialise(
     ).get<double>();
 
 
-  rclcpp::QoS qos = rclcpp::SensorDataQoS();
+  rclcpp::QoS qos = rclcpp::QoS(1).best_effort().durability_volatile();  // best_effort, volatile, keep_last=1
 
 
   timer_ = rclcpp::create_timer(
