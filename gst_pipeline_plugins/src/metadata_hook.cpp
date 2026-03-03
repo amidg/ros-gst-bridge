@@ -40,7 +40,7 @@ void metadata_hook::initialise(
 
 
   if(!mark_){
-    rclcpp::QoS qos = rclcpp::SensorDataQoS().reliable();
+    rclcpp::QoS qos = rclcpp::SensorDataQoS();  // best_effort + volatile
     mark_pub_ = rclcpp::create_publisher<gst_msgs::msg::MetaMark>(
                 node_if->parameters, node_if->topics, topic_name_, qos);
   }

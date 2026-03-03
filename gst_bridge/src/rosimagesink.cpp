@@ -197,7 +197,7 @@ static gboolean rosimagesink_open(RosBaseSink * ros_base_sink)
 {
   Rosimagesink * sink = GST_ROSIMAGESINK(ros_base_sink);
   GST_DEBUG_OBJECT(sink, "open");
-  rclcpp::QoS qos = rclcpp::SensorDataQoS().reliable();  //XXX add a parameter for overrides
+  rclcpp::QoS qos = rclcpp::SensorDataQoS();  // best_effort + volatile
 
   sink->pub = rclcpp::create_publisher<sensor_msgs::msg::Image>(
     ros_base_sink->node_if->parameters, ros_base_sink->node_if->topics, sink->pub_topic, qos);

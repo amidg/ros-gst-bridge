@@ -193,7 +193,7 @@ static gboolean rosaudiosink_open(RosBaseSink * ros_base_sink)
 {
   Rosaudiosink * sink = GST_ROSAUDIOSINK(ros_base_sink);
   GST_DEBUG_OBJECT(sink, "open");
-  rclcpp::QoS qos = rclcpp::SensorDataQoS().reliable();  //XXX add a parameter for overrides
+  rclcpp::QoS qos = rclcpp::SensorDataQoS();  // best_effort + volatile
 
   sink->pub = rclcpp::create_publisher<audio_msgs::msg::Audio>(
     ros_base_sink->node_if->parameters, ros_base_sink->node_if->topics, sink->pub_topic, qos);

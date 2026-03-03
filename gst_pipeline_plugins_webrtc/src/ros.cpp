@@ -13,7 +13,7 @@ void gst_pipes_webrtc_ros::init_signalling_server_client()
   //  sdp_tx_topic, ice_tx_topic, sdp_rx_topic, ice_rx_topic
 
 
-  rclcpp::QoS qos = rclcpp::SensorDataQoS().reliable();
+  rclcpp::QoS qos = rclcpp::SensorDataQoS();  // best_effort + volatile
 
 
   sdp_tx = rclcpp::create_publisher<std_msgs::msg::String>(

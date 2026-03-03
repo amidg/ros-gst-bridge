@@ -36,7 +36,7 @@ namespace gst_pipeline_plugins
                           descr("the topic name to post events from the sink", true))
       .get<std::string>();
 
-    rclcpp::QoS qos = rclcpp::SensorDataQoS().reliable();
+    rclcpp::QoS qos = rclcpp::SensorDataQoS();  // best_effort + volatile
 
     event_pub_ = rclcpp::create_publisher<gst_msgs::msg::MultifilesinkEvent>(
                                                                              node_if_->parameters, node_if_->topics, topic_name_, qos);
