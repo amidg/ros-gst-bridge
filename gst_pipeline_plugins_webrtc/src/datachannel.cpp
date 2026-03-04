@@ -218,7 +218,7 @@ datachannel_handler_string_topic::on_open_cb(GstWebRTCDataChannel * channel)
     get_base_node_if(base_)->parameters,
     get_base_node_if(base_)->topics,
     "~/"+get_base_name(base_)+"/"+get_label(channel)+"_rx",
-    rclcpp::QoS(1).best_effort().durability_volatile()  // best_effort, volatile, keep_last=1
+    rclcpp::QoS(1).reliable().durability_volatile()  // reliable, volatile, keep_last=1 - required for image_republisher compatibility in ROS2
   );
 
 }

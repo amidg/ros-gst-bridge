@@ -35,7 +35,7 @@ void clock_observer::initialise(
     ).get<double>();
 
 
-  rclcpp::QoS qos = rclcpp::QoS(1).best_effort().durability_volatile();  // best_effort, volatile, keep_last=1
+  rclcpp::QoS qos = rclcpp::QoS(1).reliable().durability_volatile();  // reliable, volatile, keep_last=1 - required for image_republisher compatibility in ROS2
 
 
   timer_ = rclcpp::create_timer(

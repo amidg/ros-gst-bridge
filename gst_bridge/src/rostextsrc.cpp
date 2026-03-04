@@ -189,7 +189,7 @@ static gboolean rostextsrc_open(RosBaseSrc * ros_base_src)
   // ROS can't cope with some forms of std::bind being passed as subscriber callbacks,
   // lambdas seem to be the preferred case for these instances
   auto cb = [src](std_msgs::msg::String::ConstSharedPtr msg) { rostextsrc_sub_cb(src, msg); };
-  rclcpp::QoS qos = rclcpp::SensorDataQoS();  //XXX add a parameter for overrides
+  rclcpp::QoS qos = rclcpp::QoS(1).reliable().durability_volatile();  // reliable, volatile, keep_last=1 - required for image_republisher compatibility in ROS2
 
   src->sub = rclcpp::create_subscription<std_msgs::msg::String>(
     ros_base_src->node_if->parameters, ros_base_src->node_if->topics, src->sub_topic, qos, cb);

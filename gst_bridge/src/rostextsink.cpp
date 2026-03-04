@@ -155,7 +155,7 @@ static gboolean rostextsink_open(RosBaseSink * ros_base_sink)
 {
   Rostextsink * sink = GST_ROSTEXTSINK(ros_base_sink);
   GST_DEBUG_OBJECT(sink, "open");
-  rclcpp::QoS qos = rclcpp::QoS(1).best_effort().durability_volatile();  // best_effort, volatile, keep_last=1
+  rclcpp::QoS qos = rclcpp::QoS(1).reliable().durability_volatile();  // reliable, volatile, keep_last=1 - required for image_republisher compatibility in ROS2
   // XXX test for nullptr in ros_base_sink->node_if
 
   sink->pub = rclcpp::create_publisher<std_msgs::msg::String>(

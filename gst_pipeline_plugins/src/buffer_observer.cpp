@@ -22,7 +22,7 @@ void buffer_observer::initialise(
                   descr("the topic name to post events from the source", true))
                 .get<std::string>();
 
-  rclcpp::QoS qos = rclcpp::QoS(1).best_effort().durability_volatile();  // best_effort, volatile, keep_last=1
+  rclcpp::QoS qos = rclcpp::QoS(1).reliable().durability_volatile();  // reliable, volatile, keep_last=1 - required for image_republisher compatibility in ROS2
 
   event_pub_ = rclcpp::create_publisher<gst_msgs::msg::BufferEvent>(
               node_if->parameters, node_if->topics, topic_name_, qos);

@@ -196,7 +196,7 @@ static gboolean roscompressedimagesink_open(RosBaseSink * ros_base_sink)
   Roscompressedimagesink * sink = GST_ROSCOMPRESSEDIMAGESINK(ros_base_sink);
   GST_DEBUG_OBJECT(sink, "open");
 
-  rclcpp::QoS qos = rclcpp::QoS(1).best_effort().durability_volatile();
+  rclcpp::QoS qos = rclcpp::QoS(1).reliable().durability_volatile();  // reliable, volatile, keep_last=1 - required for image_republisher compatibility in ROS2
 
   sink->pub = rclcpp::create_publisher<sensor_msgs::msg::CompressedImage>(
     ros_base_sink->node_if->parameters, ros_base_sink->node_if->topics, sink->pub_topic, qos);

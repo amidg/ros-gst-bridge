@@ -36,7 +36,7 @@ void framegate::initialise(
     gate_mode_ = gst_msgs::msg::FrameGate::PASS_ONE;	// dirty hack to get through preroll
   }
 
-  rclcpp::QoS qos = rclcpp::SensorDataQoS();
+  rclcpp::QoS qos = rclcpp::QoS(1).reliable().durability_volatile();  // reliable, volatile, keep_last=1 - required for image_republisher compatibility in ROS2
 
   gate_sub_ = rclcpp::create_subscription<gst_msgs::msg::FrameGate>(
     node_if_->parameters, node_if_->topics, gate_topic_, qos,
