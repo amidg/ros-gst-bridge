@@ -95,9 +95,11 @@ add_library(rosgstbridge SHARED
   src/rosgstbridgeplugin.cpp
   src/rosaudiosink.cpp
   src/rosimagesink.cpp
+  src/roscompressedimagesink.cpp
   src/rostextsink.cpp
   src/rosaudiosrc.cpp
   src/rosimagesrc.cpp
+  src/roscompressedimagesrc.cpp
   src/rostextsrc.cpp
 )
 

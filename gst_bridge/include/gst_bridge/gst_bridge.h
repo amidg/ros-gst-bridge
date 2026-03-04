@@ -77,6 +77,11 @@
   "alignment = (string) nal, "             \
   "profile = (string) { constrained-baseline, baseline, main, high }"
 
+#define ROS_COMPRESSED_IMAGE_MSG_CAPS \
+  "image/jpeg; " \
+  "video/x-h264, stream-format=(string)byte-stream, alignment=(string)au; " \
+  "video/x-h265, stream-format=(string)byte-stream, alignment=(string)au"
+
 // XXX support source from "text/plain" for pocketsphinx
 // XXX support sink to "text/x-raw,{ (string)pango-markup, (string)utf8 }" for textoverlay
 // XXX support src and sink "ANY" like filesink and filesrc, (emit a stamped byte string, with a gst caps string as meta)
