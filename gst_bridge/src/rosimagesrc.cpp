@@ -159,6 +159,7 @@ static void rosimagesrc_init(Rosimagesrc * src)
 
   src->msg_init = true;
   src->msg_queue_max = 1;
+  src->msg_queue_stop = false;
   // XXX why does queue segfault without expicit construction?
   src->msg_queue = std::deque<sensor_msgs::msg::Image::ConstSharedPtr>();
 
@@ -309,6 +310,8 @@ static gboolean rosimagesrc_open(RosBaseSrc * ros_base_src)
 
   GST_DEBUG_OBJECT(src, "open");
 
+  src->msg_queue_stop = false;
+
   // ROS can't cope with some forms of std::bind being passed as subscriber callbacks,
   // lambdas seem to be the preferred case for these instances
   auto cb = [src](sensor_msgs::msg::Image::ConstSharedPtr msg) { rosimagesrc_sub_cb(src, msg); };
@@ -331,8 +334,12 @@ static gboolean rosimagesrc_close(RosBaseSrc * ros_base_src)
   src->sub.reset();
 
   //empty the queue
-  std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
-  src->msg_queue.clear();
+  {
+    std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
+    src->msg_queue.clear();
+    src->msg_queue_stop = true;
+  }
+  src->msg_queue_cv.notify_all();
 
   return TRUE;
 }
@@ -343,7 +350,10 @@ static gboolean rosimagesrc_notify_thread (RosBaseSrc * ros_base_src)
 
   GST_DEBUG_OBJECT (src, "notify_thread");
 
-  // notify any waiting threads
+  {
+    std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
+    src->msg_queue_stop = true;
+  }
   src->msg_queue_cv.notify_all();
 
   return TRUE;
@@ -569,7 +579,7 @@ static void rosimagesrc_sub_cb(Rosimagesrc * src, sensor_msgs::msg::Image::Const
   std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
   src->msg_queue.push_front(msg);
   while (src->msg_queue.size() > src->msg_queue_max) {
-    src->msg_queue.pop_front();
+    src->msg_queue.pop_back();  // drop oldest, keep newest
     RCLCPP_WARN(ros_base_src->node_if->logging->get_logger(), "dropping message");
   }
   src->msg_queue_cv.notify_one();
@@ -580,7 +590,9 @@ static sensor_msgs::msg::Image::ConstSharedPtr rosimagesrc_wait_for_msg(Rosimage
   //RosBaseSrc *ros_base_src = GST_ROS_BASE_SRC (src);
 
   std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
-  src->msg_queue_cv.wait(lck);
+  src->msg_queue_cv.wait(lck, [src] {
+    return !src->msg_queue.empty() || src->msg_queue_stop;
+  });
   if (src->msg_queue.empty())
   {
     // the wait was interrupted

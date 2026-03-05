@@ -134,6 +134,7 @@ static void roscompressedimagesrc_init(Roscompressedimagesrc * src)
 
   src->msg_init = true;
   src->msg_queue_max = 1;
+  src->msg_queue_stop = false;
   src->msg_queue = std::deque<sensor_msgs::msg::CompressedImage::ConstSharedPtr>();
 
   gst_base_src_set_live(GST_BASE_SRC(src), TRUE);
@@ -197,6 +198,8 @@ static gboolean roscompressedimagesrc_open(RosBaseSrc * ros_base_src)
 
   GST_DEBUG_OBJECT(src, "open");
 
+  src->msg_queue_stop = false;
+
   auto cb = [src](sensor_msgs::msg::CompressedImage::ConstSharedPtr msg) {
     roscompressedimagesrc_sub_cb(src, msg);
   };
@@ -216,8 +219,12 @@ static gboolean roscompressedimagesrc_close(RosBaseSrc * ros_base_src)
 
   src->sub.reset();
 
-  std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
-  src->msg_queue.clear();
+  {
+    std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
+    src->msg_queue.clear();
+    src->msg_queue_stop = true;
+  }
+  src->msg_queue_cv.notify_all();
 
   return TRUE;
 }
@@ -228,6 +235,10 @@ static gboolean roscompressedimagesrc_notify_thread(RosBaseSrc * ros_base_src)
 
   GST_DEBUG_OBJECT(src, "notify_thread");
 
+  {
+    std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
+    src->msg_queue_stop = true;
+  }
   src->msg_queue_cv.notify_all();
 
   return TRUE;
@@ -360,7 +371,7 @@ static void roscompressedimagesrc_sub_cb(
   std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
   src->msg_queue.push_front(msg);
   while (src->msg_queue.size() > src->msg_queue_max) {
-    src->msg_queue.pop_front();
+    src->msg_queue.pop_back();  // drop oldest, keep newest
     RCLCPP_WARN(ros_base_src->node_if->logging->get_logger(), "dropping message");
   }
   src->msg_queue_cv.notify_one();
@@ -370,7 +381,9 @@ static sensor_msgs::msg::CompressedImage::ConstSharedPtr roscompressedimagesrc_w
   Roscompressedimagesrc * src)
 {
   std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
-  src->msg_queue_cv.wait(lck);
+  src->msg_queue_cv.wait(lck, [src] {
+    return !src->msg_queue.empty() || src->msg_queue_stop;
+  });
   if (src->msg_queue.empty()) {
     return sensor_msgs::msg::CompressedImage::ConstSharedPtr();
   }

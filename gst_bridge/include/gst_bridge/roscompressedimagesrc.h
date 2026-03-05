@@ -57,6 +57,7 @@ struct _Roscompressedimagesrc
   bool msg_init;
 
   size_t msg_queue_max;
+  bool msg_queue_stop;
   std::deque<sensor_msgs::msg::CompressedImage::ConstSharedPtr> msg_queue;
   std::mutex msg_queue_mtx;
   std::condition_variable msg_queue_cv;
