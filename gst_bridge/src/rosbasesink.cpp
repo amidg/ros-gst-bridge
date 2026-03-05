@@ -121,6 +121,8 @@ static void rosbasesink_init(RosBaseSink * sink)
   sink->node_namespace = g_strdup("");
   sink->stream_start_prop = GST_CLOCK_TIME_NONE;
   sink->use_sim_time = FALSE;
+  // buffer PTS carries absolute ROS timestamps, not pipeline-relative time
+  gst_base_sink_set_sync(GST_BASE_SINK(sink), FALSE);
 }
 
 void rosbasesink_set_property(
@@ -304,18 +306,13 @@ static gboolean rosbasesink_close(RosBaseSink * sink)
 static GstFlowReturn rosbasesink_render(GstBaseSink * base_sink, GstBuffer * buf)
 {
   rclcpp::Time msg_time;
-  GstClockTimeDiff base_time;
 
   RosBaseSink * sink = GST_ROS_BASE_SINK(base_sink);
   RosBaseSinkClass * sink_class = GST_ROS_BASE_SINK_GET_CLASS(sink);
 
   GST_DEBUG_OBJECT(sink, "render");
 
-  // XXX look at the base sink clock synchronising features
-  base_time = gst_element_get_base_time(GST_ELEMENT(sink));
-  msg_time = rclcpp::Time(
-    GST_BUFFER_PTS(buf) + base_time + sink->ros_clock_offset,
-    sink->node_if->clock->get_clock()->get_clock_type());
+  msg_time = sink->node_if->clock->get_clock()->now();
 
   if (NULL != sink_class->render) return sink_class->render(sink, buf, msg_time);
 

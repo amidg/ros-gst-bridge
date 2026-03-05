@@ -139,7 +139,7 @@ static void roscompressedimagesrc_init(Roscompressedimagesrc * src)
 
   gst_base_src_set_live(GST_BASE_SRC(src), TRUE);
   gst_base_src_set_format(GST_BASE_SRC(src), GST_FORMAT_TIME);
-  gst_base_src_set_do_timestamp(GST_BASE_SRC(src), TRUE);
+  gst_base_src_set_do_timestamp(GST_BASE_SRC(src), FALSE);
 }
 
 static void roscompressedimagesrc_set_property(
@@ -307,12 +307,17 @@ static GstFlowReturn roscompressedimagesrc_create(
   Roscompressedimagesrc * src = GST_ROSCOMPRESSEDIMAGESRC(base_src);
 
   GstMapInfo info;
-  GstClockTimeDiff base_time;
   size_t length;
   GstFlowReturn ret = GST_FLOW_OK;
   GstBuffer * res_buf;
 
   GST_DEBUG_OBJECT(src, "create");
+
+  // create() is only called when PLAYING - clear any stop flag left from a previous pause
+  {
+    std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
+    src->msg_queue_stop = false;
+  }
 
   auto msg = roscompressedimagesrc_wait_for_msg(src);
   if (!msg) {
@@ -342,9 +347,7 @@ static GstFlowReturn roscompressedimagesrc_create(
   memcpy(info.data, msg->data.data(), length);
   gst_buffer_unmap(*buf, &info);
 
-  base_time = gst_element_get_base_time(GST_ELEMENT(src));
-  GST_BUFFER_PTS(*buf) =
-    rclcpp::Time(msg->header.stamp).nanoseconds() - ros_base_src->ros_clock_offset - base_time;
+  GST_BUFFER_PTS(*buf) = rclcpp::Time(msg->header.stamp).nanoseconds();
 
   return ret;
 }

@@ -235,7 +235,8 @@ static GstStateChangeReturn rosbasesrc_change_state(GstElement * element, GstSta
       break;
     }
     case GST_STATE_CHANGE_READY_TO_PAUSED:
-      //XXX stop the subscription
+      // create() is not running in READY state, no need to notify
+      break;
     case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
       rosbasesrc_notify_thread(src);
       break;

@@ -169,7 +169,7 @@ static void rosimagesrc_init(Rosimagesrc * src)
   gst_base_src_set_format(GST_BASE_SRC(src), GST_FORMAT_TIME);
   /* make basesrc set timestamps on outgoing buffers based on the running_time
    * when they were captured */
-  gst_base_src_set_do_timestamp(GST_BASE_SRC(src), TRUE);
+  gst_base_src_set_do_timestamp(GST_BASE_SRC(src), FALSE);
 }
 
 void rosimagesrc_set_property(
@@ -486,12 +486,17 @@ static GstFlowReturn rosimagesrc_create(
   Rosimagesrc * src = GST_ROSIMAGESRC(base_src);
 
   GstMapInfo info;
-  GstClockTimeDiff base_time;
   size_t length;
   GstFlowReturn ret = GST_FLOW_OK;
   GstBuffer * res_buf;
 
   GST_DEBUG_OBJECT(src, "create");
+
+  // create() is only called when PLAYING - clear any stop flag left from a previous pause
+  {
+    std::unique_lock<std::mutex> lck(src->msg_queue_mtx);
+    src->msg_queue_stop = false;
+  }
 
   if (!ros_base_src->node_if) {
     GST_DEBUG_OBJECT(src, "ros image creating buffer before node init");
@@ -535,9 +540,7 @@ static GstFlowReturn rosimagesrc_create(
   memcpy(info.data, msg->data.data(), length);
   gst_buffer_unmap(*buf, &info);
 
-  base_time = gst_element_get_base_time(GST_ELEMENT(src));
-  GST_BUFFER_PTS(*buf) =
-    rclcpp::Time(msg->header.stamp).nanoseconds() - ros_base_src->ros_clock_offset - base_time;
+  GST_BUFFER_PTS(*buf) = rclcpp::Time(msg->header.stamp).nanoseconds();
 
   return ret;
 }
