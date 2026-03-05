@@ -59,6 +59,7 @@ enum {
   PROP_ROS_NAME,
   PROP_ROS_NAMESPACE,
   PROP_ROS_START_TIME,
+  PROP_USE_SIM_TIME,
 };
 
 /* class initialization */
@@ -100,6 +101,13 @@ static void rosbasesrc_class_init(RosBaseSrcClass * klass)
       (guint64)(-1), GST_CLOCK_TIME_NONE,
       (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+  g_object_class_install_property(
+    object_class, PROP_USE_SIM_TIME,
+    g_param_spec_boolean(
+      "use-sim-time", "use-sim-time",
+      "Use ROS simulation clock (/clock topic) instead of wall clock", FALSE,
+      (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
   element_class->change_state = GST_DEBUG_FUNCPTR(
     rosbasesrc_change_state);  //use state change events to open and close subscribers
 
@@ -111,6 +119,7 @@ static void rosbasesrc_init(RosBaseSrc * src)
   src->node_name = g_strdup("ros_base_src_node");
   src->node_namespace = g_strdup("");
   src->stream_start_prop = GST_CLOCK_TIME_NONE;
+  src->use_sim_time = FALSE;
 }
 
 void rosbasesrc_set_property(
@@ -148,6 +157,15 @@ void rosbasesrc_set_property(
       }
       break;
 
+    case PROP_USE_SIM_TIME:
+      if (src->node_if) {
+        RCLCPP_ERROR(
+          src->node_if->logging->get_logger(), "can't change use_sim_time once opened");
+      } else {
+        src->use_sim_time = g_value_get_boolean(value);
+      }
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
       break;
@@ -173,6 +191,10 @@ void rosbasesrc_get_property(
       g_value_set_uint64(value, src->stream_start.nanoseconds());
       // XXX this allows inspection via props,
       //      but may cause confusion because it does not show the actual prop
+      break;
+
+    case PROP_USE_SIM_TIME:
+      g_value_set_boolean(value, src->use_sim_time);
       break;
 
     default:
@@ -247,6 +269,7 @@ static gboolean rosbasesrc_open(RosBaseSrc * src)
 
   if (nullptr == src->node_if) {
     // XXX this can be a call to a gst interface
+    src->local_node.use_sim_time = src->use_sim_time;
     rosbaseimp_open(&(src->local_node), src->node_name, src->node_namespace);
     src->node_if = gst_bridge::collect_all_node_interfaces(src->local_node.node);
   }

@@ -46,6 +46,7 @@ struct _RosBaseSink
   GstBaseSink parent;
   gchar * node_name;
   gchar * node_namespace;
+  gboolean use_sim_time;
 
   // private variables to construct the node interfaces
   RosBaseImp local_node;

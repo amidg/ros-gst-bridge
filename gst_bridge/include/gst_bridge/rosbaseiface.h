@@ -58,6 +58,7 @@ struct _RosBaseImp
   // interface variables
   gchar * node_name;
   gchar * node_namespace;
+  gboolean use_sim_time;
 
   rclcpp::Context::SharedPtr ros_context;
   rclcpp::Executor::SharedPtr ros_executor;

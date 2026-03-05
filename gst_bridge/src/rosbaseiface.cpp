@@ -141,6 +141,9 @@ gboolean rosbaseimp_open(RosBaseImp * self, gchar * node_name, gchar * node_name
   self->ros_context->init(0, NULL);  // XXX should expose the init arg list
   auto opts = rclcpp::NodeOptions();
   opts.context(self->ros_context);  //set a context to generate the node in
+  if (self->use_sim_time) {
+    opts.parameter_overrides({rclcpp::Parameter("use_sim_time", true)});
+  }
   self->node =
     std::make_shared<rclcpp::Node>(std::string(node_name), std::string(node_namespace), opts);
 

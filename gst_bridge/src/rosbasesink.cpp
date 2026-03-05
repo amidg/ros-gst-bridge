@@ -60,6 +60,7 @@ enum {
   PROP_ROS_NAME,
   PROP_ROS_NAMESPACE,
   PROP_ROS_START_TIME,
+  PROP_USE_SIM_TIME,
 };
 
 /* class initialization */
@@ -102,6 +103,13 @@ static void rosbasesink_class_init(RosBaseSinkClass * klass)
       (guint64)(-1), GST_CLOCK_TIME_NONE,
       (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+  g_object_class_install_property(
+    object_class, PROP_USE_SIM_TIME,
+    g_param_spec_boolean(
+      "use-sim-time", "use-sim-time",
+      "Use ROS simulation clock (/clock topic) instead of wall clock", FALSE,
+      (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
   element_class->change_state = GST_DEBUG_FUNCPTR(
     rosbasesink_change_state);  //use state change events to open and close publishers
   basesink_class->render = GST_DEBUG_FUNCPTR(rosbasesink_render);  // gives us a buffer to forward
@@ -112,6 +120,7 @@ static void rosbasesink_init(RosBaseSink * sink)
   sink->node_name = g_strdup("gst_base_sink_node");
   sink->node_namespace = g_strdup("");
   sink->stream_start_prop = GST_CLOCK_TIME_NONE;
+  sink->use_sim_time = FALSE;
 }
 
 void rosbasesink_set_property(
@@ -149,6 +158,15 @@ void rosbasesink_set_property(
       }
       break;
 
+    case PROP_USE_SIM_TIME:
+      if (sink->node_if) {
+        RCLCPP_ERROR(
+          sink->node_if->logging->get_logger(), "can't change use_sim_time once opened");
+      } else {
+        sink->use_sim_time = g_value_get_boolean(value);
+      }
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
       break;
@@ -174,6 +192,10 @@ void rosbasesink_get_property(
       g_value_set_uint64(value, sink->stream_start.nanoseconds());
       // XXX this allows inspection via props,
       //      but may cause confusion because it does not show the actual prop
+      break;
+
+    case PROP_USE_SIM_TIME:
+      g_value_set_boolean(value, sink->use_sim_time);
       break;
 
     default:
@@ -248,6 +270,7 @@ static gboolean rosbasesink_open(RosBaseSink * sink)
 
   if (nullptr == sink->node_if) {
     // XXX this can be a call to a gst interface
+    sink->local_node.use_sim_time = sink->use_sim_time;
     rosbaseimp_open(&(sink->local_node), sink->node_name, sink->node_namespace);
     sink->node_if = gst_bridge::collect_all_node_interfaces(sink->local_node.node);
   }
